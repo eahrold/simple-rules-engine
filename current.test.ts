@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { RuleBuilder } from "./rules-engine";
+import { createRuleBuilder } from "./rules-engine";
 
 import {
   accessor1,
@@ -10,7 +10,7 @@ import {
 
 describe("RulesEngine - Current Tests", () => {
   it("should handle multiple AND and OR combinations", () => {
-    const builder = RuleBuilder.create()
+    const builder = createRuleBuilder()
       .withTenant("tenant1")
       .and((bldr) =>
         bldr

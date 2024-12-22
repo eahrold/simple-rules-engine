@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect } from "bun:test";
-import { RuleBuilder } from "./rules-engine";
+import { createRuleBuilder } from "./rules-engine";
 import type { Accessor } from "./types";
 
 describe("RuleBuilder", () => {
@@ -15,47 +15,47 @@ describe("RuleBuilder", () => {
   });
 
   it("should pass for matching tenant", () => {
-    const builder = RuleBuilder.create().withTenant("tenant1");
+    const builder = createRuleBuilder().withTenant("tenant1");
     expect(builder.check(accessor)).toBe(true);
   });
 
   it("should fail for non-matching tenant", () => {
-    const builder = RuleBuilder.create().withTenant("tenant2");
+    const builder = createRuleBuilder().withTenant("tenant2");
     expect(builder.check(accessor)).toBe(false);
   });
 
   it("should pass for matching roles", () => {
-    const builder = RuleBuilder.create().withRoles(["role1", "role2"]);
+    const builder = createRuleBuilder().withRoles(["role1", "role2"]);
     expect(builder.check(accessor)).toBe(true);
   });
 
   it("should fail for non-matching roles", () => {
-    const builder = RuleBuilder.create().withRoles(["role3"]);
+    const builder = createRuleBuilder().withRoles(["role3"]);
     expect(builder.check(accessor)).toBe(false);
   });
 
   it("should pass for matching scopes", () => {
-    const builder = RuleBuilder.create().withScopes(["read", "write"]);
+    const builder = createRuleBuilder().withScopes(["read", "write"]);
     expect(builder.check(accessor)).toBe(true);
   });
 
   it("should fail for non-matching scopes", () => {
-    const builder = RuleBuilder.create().withScopes(["execute"]);
+    const builder = createRuleBuilder().withScopes(["execute"]);
     expect(builder.check(accessor)).toBe(false);
   });
 
   it("should pass for matching policies", () => {
-    const builder = RuleBuilder.create().withPolicies(["policy1"]);
+    const builder = createRuleBuilder().withPolicies(["policy1"]);
     expect(builder.check(accessor)).toBe(true);
   });
 
   it("should fail for non-matching policies", () => {
-    const builder = RuleBuilder.create().withPolicies(["policy3"]);
+    const builder = createRuleBuilder().withPolicies(["policy3"]);
     expect(builder.check(accessor)).toBe(false);
   });
 
   it("should pass when all AND conditions match", () => {
-    const builder = RuleBuilder.create()
+    const builder = createRuleBuilder()
       .withTenant("tenant1")
       .and((bldr) =>
         bldr

@@ -1,25 +1,23 @@
-import type { Rule, Accessor, LogicalOperator } from "./types";
+import type { Rule, Accessor, LogicalOperator, RuleBuilder } from "./types";
 import { PolicyRule, ScopeRule, RoleRule, TenantRule } from "./rules";
-export { RuleBuilder };
 
-class RuleBuilder {
+export function createRuleBuilder(
+  operator: LogicalOperator = "AND"
+): RuleBuilder {
+  return RuleBuilderImpl.create(operator);
+}
+
+class RuleBuilderImpl {
   private rules: Rule[] = [];
   private subBuilders: RuleBuilder[] = [];
   private operator: LogicalOperator;
 
-  constructor(operator: LogicalOperator = "AND", rules: Rule[] = []) {
+  constructor(operator: LogicalOperator = "AND") {
     this.operator = operator;
-    this.rules = rules;
   }
 
   static create(operator: LogicalOperator = "AND"): RuleBuilder {
-    return new RuleBuilder(operator);
-  }
-
-  private dlog(...message: unknown[]) {
-    if (process.env.NODE_ENV === "debug") {
-      console.log(...message);
-    }
+    return new RuleBuilderImpl(operator);
   }
 
   withTenant(tenantId: string): RuleBuilder {
@@ -49,18 +47,10 @@ class RuleBuilder {
 
   or(subBuilderCallback: (builder: RuleBuilder) => void): RuleBuilder {
     this.operator = "OR";
-    const subBuilder = new RuleBuilder("AND", []);
+    const subBuilder = new RuleBuilderImpl("AND");
     subBuilderCallback(subBuilder);
     this.subBuilders.push(subBuilder);
     return this;
-  }
-
-  eval(accessor: Accessor, rule: Rule): boolean {
-    const [success, reason] = rule.test(accessor);
-    if (!success) {
-      this.dlog(reason);
-    }
-    return success;
   }
 
   check(accessor: Accessor, depth = 0): boolean {
@@ -97,5 +87,19 @@ class RuleBuilder {
     }
     console.assert(false, "Invalid Logical Operator");
     return false;
+  }
+
+  private dlog(...message: unknown[]) {
+    if (process.env.NODE_ENV === "debug") {
+      console.log(...message);
+    }
+  }
+
+  private eval(accessor: Accessor, rule: Rule): boolean {
+    const [success, reason] = rule.test(accessor);
+    if (!success) {
+      this.dlog(reason);
+    }
+    return success;
   }
 }
