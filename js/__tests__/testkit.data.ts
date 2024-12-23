@@ -6,14 +6,31 @@ export function getConfig() {
 }
 
 export function createTestActor(
-  merge: Partial<AuthenticatedActor>,
-  base: AuthenticatedActor = actor1
+  merge: {
+    account?: Partial<AuthenticatedActor["account"]>;
+    claims?: Partial<AuthenticatedActor["claims"]>;
+  },
+  source: AuthenticatedActor = BASE_ACTOR
 ) {
-  return {
-    account: { ...base.account, ...(merge.account ?? {}) },
-    claims: { ...base.claims, ...(merge.claims ?? {}) },
+  const merged = {
+    account: { ...source.account, ...(merge?.account ?? {}) },
+    claims: { ...source.claims, ...(merge?.claims ?? {}) },
   };
+  return [merged, source];
 }
+
+export const BASE_ACTOR: AuthenticatedActor = {
+  account: {
+    id: "baseActor",
+    role: "baseRole",
+  },
+  claims: {
+    accessorSource: "User",
+    scopes: [],
+    permissions: [],
+    tenantId: "baseTenant",
+  },
+};
 
 export const actor1: AuthenticatedActor = {
   account: {

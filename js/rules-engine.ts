@@ -62,6 +62,10 @@ class RulesEngineImpl {
     return this.with(TenantRule(tenantId));
   }
 
+  withRole(role: string): RulesEngine {
+    return this.withRoles([role]);
+  }
+
   withRoles(roles: string[]): RulesEngine {
     return this.with(RoleRule(roles));
   }

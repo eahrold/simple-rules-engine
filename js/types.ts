@@ -20,6 +20,7 @@ export interface RulesEngine {
 
   with(rule: RulesEngineRule): RulesEngine;
   withTenant(tenantId: string): RulesEngine;
+  withRole(role: string): RulesEngine;
   withRoles(roles: string[]): RulesEngine;
   withScopes(scopes: string[], operator?: AggregateOperator): RulesEngine;
   withPermissions(
