@@ -4,6 +4,8 @@ SimpleRulesEngine is a lightweight and flexible rules engine for managing access
 
 ## Javascript
 
+[![test-js](https://github.com/eahrold/simple-rules-engine/actions/workflows/test-js.yml/badge.svg)](https://github.com/eahrold/simple-rules-engine/actions/workflows/test-js.yml)
+
 See the [Javascript README](./js/README.md) for more information on how to use the Javascript library.
 
 ## Java
