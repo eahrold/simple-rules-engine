@@ -1,0 +1,15 @@
+name: test-js
+jobs:
+  test-js:
+    name: test-js
+    runs-on: ubuntu-latest
+    defaults:
+      working-directory: /js
+    steps:
+      # ...
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      # run any `bun` or `bunx` command
+      - run: bun install
+      - run: bun test --coverage
