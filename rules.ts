@@ -1,6 +1,6 @@
-import type { Accessor, Rule } from "./types";
+import type { Accessor, RulesEngineRule } from "./types";
 
-export function ScopeRule(scopes: string[]): Rule {
+export function ScopeRule(scopes: string[]): RulesEngineRule {
   return {
     name: "scopes",
     test: (accessor: Accessor) => {
@@ -14,7 +14,7 @@ export function ScopeRule(scopes: string[]): Rule {
   };
 }
 
-export function PolicyRule(policies: string[]): Rule {
+export function PolicyRule(policies: string[]): RulesEngineRule {
   return {
     name: "policies",
     test: (accessor: Accessor) => {
@@ -30,7 +30,7 @@ export function PolicyRule(policies: string[]): Rule {
   };
 }
 
-export function RoleRule(roles: string[]): Rule {
+export function RoleRule(roles: string[]): RulesEngineRule {
   return {
     name: "role",
     test: (accessor: Accessor) => {
@@ -41,7 +41,7 @@ export function RoleRule(roles: string[]): Rule {
   };
 }
 
-export function TenantRule(tenant: string): Rule {
+export function TenantRule(tenant: string): RulesEngineRule {
   return {
     name: "tenant",
     test: (accessor: Accessor) => {

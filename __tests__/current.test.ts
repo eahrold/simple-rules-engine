@@ -1,16 +1,10 @@
-import { describe, it, expect } from "bun:test";
-import { createRuleBuilder } from "./rules-engine";
-
-import {
-  accessor1,
-  accessor2,
-  accessor3,
-  accessor4,
-} from "./__tests__/test.data";
+import { describe, it, expect } from "./testkit";
+import { accessor1, accessor2, accessor3, accessor4 } from "./testkit.data";
+import { createRulesEngine } from "../rules-engine";
 
 describe("RulesEngine - Current Tests", () => {
   it("should handle multiple AND and OR combinations", () => {
-    const builder = createRuleBuilder()
+    const builder = createRulesEngine()
       .withTenant("tenant1")
       .and((bldr) =>
         bldr

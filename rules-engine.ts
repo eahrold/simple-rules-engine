@@ -1,53 +1,71 @@
-import type { Rule, Accessor, LogicalOperator, RuleBuilder } from "./types";
+import type {
+  RulesEngineRule,
+  Accessor,
+  LogicalOperator,
+  RulesEngine,
+} from "./types";
 import { PolicyRule, ScopeRule, RoleRule, TenantRule } from "./rules";
 
-export function createRuleBuilder(
-  operator: LogicalOperator = "AND"
-): RuleBuilder {
-  return RuleBuilderImpl.create(operator);
+const DEBUG_LOGGER: { debug: typeof console.debug } = {
+  debug: (...message: unknown[]) => {},
+};
+
+export function createRulesEngine(
+  operator: LogicalOperator = "AND",
+  config: { logger: typeof DEBUG_LOGGER } = { logger: DEBUG_LOGGER }
+): RulesEngine {
+  return RulesEngineImpl.create(operator, config);
 }
 
-class RuleBuilderImpl {
-  private rules: Rule[] = [];
-  private subBuilders: RuleBuilder[] = [];
+class RulesEngineImpl {
+  private config: { logger: typeof DEBUG_LOGGER };
+  private rules: RulesEngineRule[] = [];
+  private subBuilders: RulesEngine[] = [];
   private operator: LogicalOperator;
 
-  constructor(operator: LogicalOperator = "AND") {
+  constructor(
+    operator: LogicalOperator = "AND",
+    config: { logger: typeof DEBUG_LOGGER }
+  ) {
     this.operator = operator;
+    this.config = config;
   }
 
-  static create(operator: LogicalOperator = "AND"): RuleBuilder {
-    return new RuleBuilderImpl(operator);
+  static create(
+    operator: LogicalOperator = "AND",
+    config: { logger: typeof DEBUG_LOGGER }
+  ): RulesEngine {
+    return new RulesEngineImpl(operator, config);
   }
 
-  withTenant(tenantId: string): RuleBuilder {
+  withTenant(tenantId: string): RulesEngine {
     this.rules.push(TenantRule(tenantId));
     return this;
   }
 
-  withRoles(roles: string[]): RuleBuilder {
+  withRoles(roles: string[]): RulesEngine {
     this.rules.push(RoleRule(roles));
     return this;
   }
 
-  withScopes(scopes: string[]): RuleBuilder {
+  withScopes(scopes: string[]): RulesEngine {
     this.rules.push(ScopeRule(scopes));
     return this;
   }
 
-  withPolicies(policies: string[]): RuleBuilder {
+  withPolicies(policies: string[]): RulesEngine {
     this.rules.push(PolicyRule(policies));
     return this;
   }
 
-  and(cb: (builder: RuleBuilder) => void): RuleBuilder {
+  and(cb: (builder: RulesEngine) => void): RulesEngine {
     cb(this);
     return this;
   }
 
-  or(subBuilderCallback: (builder: RuleBuilder) => void): RuleBuilder {
+  or(subBuilderCallback: (builder: RulesEngine) => void): RulesEngine {
     this.operator = "OR";
-    const subBuilder = new RuleBuilderImpl("AND");
+    const subBuilder = new RulesEngineImpl("AND", this.config);
     subBuilderCallback(subBuilder);
     this.subBuilders.push(subBuilder);
     return this;
@@ -90,9 +108,7 @@ class RuleBuilderImpl {
   }
 
   private dlog(...message: unknown[]) {
-    if (process.env.NODE_ENV === "debug") {
-      console.log(...message);
-    }
+    this.config.logger.debug(message);
   }
 
   private eval(accessor: Accessor, rule: Rule): boolean {

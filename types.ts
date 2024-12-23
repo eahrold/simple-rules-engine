@@ -5,21 +5,21 @@ export type Accessor = {
   tenantId: string;
 };
 
-export interface RuleBuilder {
-  withTenant(tenantId: string): RuleBuilder;
-  withRoles(roles: string[]): RuleBuilder;
-  withScopes(scopes: string[]): RuleBuilder;
-  withPolicies(policies: string[]): RuleBuilder;
-  and(cb: (builder: RuleBuilder) => void): RuleBuilder;
-  or(cb: (builder: RuleBuilder) => void): RuleBuilder;
+export interface RulesEngine {
+  withTenant(tenantId: string): RulesEngine;
+  withRoles(roles: string[]): RulesEngine;
+  withScopes(scopes: string[]): RulesEngine;
+  withPolicies(policies: string[]): RulesEngine;
+  and(cb: (builder: RulesEngine) => void): RulesEngine;
+  or(cb: (builder: RulesEngine) => void): RulesEngine;
   check(accessor: Accessor, depth?: number): boolean;
 }
 
-export type RuleResult = [true, null] | [false, string];
+export type RulesEngineResult = [true, null] | [false, string];
 
-export type Rule = {
+export type RulesEngineRule = {
   name: string;
-  test: (accessor: Accessor) => RuleResult;
+  test: (accessor: Accessor) => RulesEngineResult;
 };
 
 export type LogicalOperator = "AND" | "OR";

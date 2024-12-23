@@ -1,16 +1,11 @@
-import { describe, it, expect } from "bun:test";
-import { createRuleBuilder } from "./rules-engine";
+import { describe, it, expect } from "./testkit";
+import { accessor1, accessor2, accessor3, accessor4 } from "./testkit.data";
 
-import {
-  accessor1,
-  accessor2,
-  accessor3,
-  accessor4,
-} from "./__tests__/test.data";
+import { createRulesEngine } from "../rules-engine";
 
 describe("RulesEngine - And Or Testing", () => {
   it("should pass when all AND conditions match", () => {
-    const builder = createRuleBuilder()
+    const builder = createRulesEngine()
       .withTenant("tenant1")
       .and((bldr) => bldr.withRoles(["role1"]).withScopes(["read"]));
 
@@ -20,7 +15,7 @@ describe("RulesEngine - And Or Testing", () => {
   });
 
   it("should pass when at least one OR condition matches", () => {
-    const builder = createRuleBuilder();
+    const builder = createRulesEngine();
     builder.or((bldr) =>
       bldr
         .withTenant("tenant1")
@@ -33,7 +28,7 @@ describe("RulesEngine - And Or Testing", () => {
   });
 
   it("should pass when a nested AND condition within OR matches", () => {
-    const builder = createRuleBuilder();
+    const builder = createRulesEngine();
     builder.or((bldr) =>
       bldr
         .and((nestedBldr) =>
@@ -48,7 +43,7 @@ describe("RulesEngine - And Or Testing", () => {
   });
 
   it("should handle multiple AND and OR combinations", () => {
-    const builder = createRuleBuilder("OR");
+    const builder = createRulesEngine("OR");
 
     builder
       .withTenant("tenant1")
@@ -72,7 +67,7 @@ describe("RulesEngine - And Or Testing", () => {
   });
 
   it("should pass when a nested OR condition within AND matches", () => {
-    const builder = createRuleBuilder()
+    const builder = createRulesEngine()
       .withTenant("tenant1")
       .and((bldr) => bldr.withRoles(["role1"]))
       .or((bldr) => {
@@ -85,7 +80,7 @@ describe("RulesEngine - And Or Testing", () => {
   });
 
   it("should pass for all accessors if no rules are defined", () => {
-    const builder = createRuleBuilder();
+    const builder = createRulesEngine();
 
     expect(builder.check(accessor1)).toBe(true);
     expect(builder.check(accessor2)).toBe(true);
@@ -93,7 +88,7 @@ describe("RulesEngine - And Or Testing", () => {
   });
 
   it("should fail when conflicting rules exist in AND", () => {
-    const builder = createRuleBuilder()
+    const builder = createRulesEngine()
       .withTenant("tenant1")
       .and((bldr) =>
         bldr
@@ -106,7 +101,7 @@ describe("RulesEngine - And Or Testing", () => {
   });
 
   it("should pass if at least one OR condition matches despite conflicts", () => {
-    const builder = createRuleBuilder().or((bldr) =>
+    const builder = createRulesEngine().or((bldr) =>
       bldr
         .withTenant("tenant1")
         .or((nestedBldr) =>
