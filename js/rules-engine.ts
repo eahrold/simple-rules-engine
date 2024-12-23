@@ -3,6 +3,7 @@ import type {
   Accessor,
   LogicalOperator,
   RulesEngine,
+  RulesEngineResult,
 } from "./types";
 import { PolicyRule, ScopeRule, RoleRule, TenantRule } from "./rules";
 
@@ -11,10 +12,9 @@ const DEBUG_LOGGER: { debug: typeof console.debug } = {
 };
 
 export function createRulesEngine(
-  operator: LogicalOperator = "AND",
   config: { logger: typeof DEBUG_LOGGER } = { logger: DEBUG_LOGGER }
 ): RulesEngine {
-  return RulesEngineImpl.create(operator, config);
+  return RulesEngineImpl.create("AND", config);
 }
 
 class RulesEngineImpl {
@@ -38,24 +38,39 @@ class RulesEngineImpl {
     return new RulesEngineImpl(operator, config);
   }
 
-  withTenant(tenantId: string): RulesEngine {
-    this.rules.push(TenantRule(tenantId));
+  createRule(
+    name: string,
+    check: (accessor: Accessor) => boolean
+  ): RulesEngineRule {
+    return {
+      name,
+      handler: (accessor: Accessor) => {
+        const pass = check(accessor);
+        if (pass) return [pass, null];
+        return [false, `Rule ${name} failed validation`];
+      },
+    };
+  }
+
+  with(rule: RulesEngineRule): RulesEngine {
+    this.rules.push(rule);
     return this;
+  }
+
+  withTenant(tenantId: string): RulesEngine {
+    return this.with(TenantRule(tenantId));
   }
 
   withRoles(roles: string[]): RulesEngine {
-    this.rules.push(RoleRule(roles));
-    return this;
+    return this.with(RoleRule(roles));
   }
 
   withScopes(scopes: string[]): RulesEngine {
-    this.rules.push(ScopeRule(scopes));
-    return this;
+    return this.with(ScopeRule(scopes));
   }
 
   withPolicies(policies: string[]): RulesEngine {
-    this.rules.push(PolicyRule(policies));
-    return this;
+    return this.with(PolicyRule(policies));
   }
 
   and(cb: (builder: RulesEngine) => void): RulesEngine {
@@ -111,8 +126,8 @@ class RulesEngineImpl {
     this.config.logger.debug(message);
   }
 
-  private eval(accessor: Accessor, rule: Rule): boolean {
-    const [success, reason] = rule.test(accessor);
+  private eval(accessor: Accessor, rule: RulesEngineRule): boolean {
+    const [success, reason] = rule.handler(accessor);
     if (!success) {
       this.dlog(reason);
     }

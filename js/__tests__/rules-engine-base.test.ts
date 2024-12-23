@@ -3,7 +3,7 @@ import { accessor1 } from "./testkit.data";
 
 import { createRulesEngine } from "../rules-engine";
 
-describe("RuleBuilder", () => {
+describe("Rules Engine - Base Test Cases", () => {
   it("should pass for matching tenant", () => {
     const builder = createRulesEngine().withTenant("tenant1");
     expect(builder.check(accessor1)).toBe(true);

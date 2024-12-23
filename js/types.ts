@@ -6,6 +6,12 @@ export type Accessor = {
 };
 
 export interface RulesEngine {
+  createRule(
+    name: string,
+    check: (accessor: Accessor) => boolean
+  ): RulesEngineRule;
+
+  with(rule: RulesEngineRule): RulesEngine;
   withTenant(tenantId: string): RulesEngine;
   withRoles(roles: string[]): RulesEngine;
   withScopes(scopes: string[]): RulesEngine;
@@ -19,7 +25,7 @@ export type RulesEngineResult = [true, null] | [false, string];
 
 export type RulesEngineRule = {
   name: string;
-  test: (accessor: Accessor) => RulesEngineResult;
+  handler: (accessor: Accessor) => RulesEngineResult;
 };
 
 export type LogicalOperator = "AND" | "OR";

@@ -14,6 +14,26 @@ describe("RulesEngine - And Or Testing", () => {
     expect(builder.check(accessor3)).toBe(false); // Different role and tenant
   });
 
+  it("Root and nesting ANDS produce same results.", () => {
+    const builder1 = createRulesEngine();
+    builder1
+      .and((bldr) =>
+        bldr.withTenant("tenant1").withRoles(["role1"]).withScopes(["read"])
+      )
+      .or((orBuilder) => orBuilder.withTenant("tenant3"));
+
+    const builder2 = createRulesEngine();
+    builder2
+      .withTenant("tenant1")
+      .withRoles(["role1"])
+      .withScopes(["read"])
+      .or((orBuilder) => orBuilder.withTenant("tenant3"));
+
+    expect(builder1.check(accessor1)).toBe(builder2.check(accessor1)); // Matches tenant1, role1, and scope "read"
+    expect(builder1.check(accessor2)).toBe(builder2.check(accessor2)); // Different tenant
+    expect(builder1.check(accessor3)).toBe(builder2.check(accessor3)); // Different role and tenant
+  });
+
   it("should pass when at least one OR condition matches", () => {
     const builder = createRulesEngine();
     builder.or((bldr) =>
@@ -43,15 +63,17 @@ describe("RulesEngine - And Or Testing", () => {
   });
 
   it("should handle multiple AND and OR combinations", () => {
-    const builder = createRulesEngine("OR");
+    const builder = createRulesEngine();
 
-    builder
-      .withTenant("tenant1")
-      .and(
-        (bldr) => bldr.withRoles(["role1"])
-        // .and((nestedBldr) => nestedBldr.withScopes(["read"]))
-      )
-      .or((bldr) => bldr.withRoles(["role2"]));
+    builder.or((b) =>
+      b
+        .withTenant("tenant1")
+        .and(
+          (bldr) => bldr.withRoles(["role1"])
+          // .and((nestedBldr) => nestedBldr.withScopes(["read"]))
+        )
+        .or((bldr) => bldr.withRoles(["role2"]))
+    );
 
     expect(builder.check(accessor1)).toBe(true); // Matches AND condition
     expect(builder.check(accessor2)).toBe(true); // Matches OR condition
