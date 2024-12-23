@@ -27,20 +27,20 @@ export function ScopeRule(scopes: string[]): RulesEngineRule {
 }
 
 export function PermissionRule(
-  policies: string[],
+  permissions: string[],
   operator: AggregateOperator = "ALL"
 ): RulesEngineRule {
   return {
     name: "permissions",
     handler: ({ claims }: AuthenticatedActor) => {
       const method = operator === "ANY" ? "some" : "every";
-      const valid = policies[method]((scope) =>
-        claims.permissions.includes(scope)
-      );
+      const valid = permissions[method]((p) => {
+        return claims.permissions.includes(p);
+      });
       if (valid) return [true, null];
       return [
         false,
-        `Policy ${claims.permissions} did not have required policies ${policies}`,
+        `Claims '${claims.permissions}' did not have ${operator} necessary permissions '${permissions}'`,
       ];
     },
   };

@@ -70,10 +70,10 @@ class RulesEngineImpl {
   }
 
   withPermissions(
-    policies: string[],
+    permissions: string[],
     operator: AggregateOperator = "ALL"
   ): RulesEngine {
-    return this.with(PermissionRule(policies));
+    return this.with(PermissionRule(permissions, operator));
   }
 
   and(cb: (builder: RulesEngine) => void): RulesEngine {

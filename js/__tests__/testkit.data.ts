@@ -1,5 +1,10 @@
 import type { AuthenticatedActor } from "../types";
 
+export function getConfig() {
+  const debug = process.env.NODE_ENV === "debug";
+  return debug ? { logger: console } : undefined;
+}
+
 export const actor1: AuthenticatedActor = {
   account: {
     id: "actor1",
