@@ -1,5 +1,5 @@
-import { describe, it, expect } from "./testkit";
-import { accessor1, accessor2, accessor3, accessor4 } from "./testkit.data";
+import { describe, it, expect } from "bun:test";
+import { actor1, actor2, actor3, actor4 } from "./testkit.data";
 
 import { createRulesEngine } from "../rules-engine";
 
@@ -9,9 +9,9 @@ describe("RulesEngine - And Or Testing", () => {
       .withTenant("tenant1")
       .and((bldr) => bldr.withRoles(["role1"]).withScopes(["read"]));
 
-    expect(builder.check(accessor1)).toBe(true); // Matches tenant1, role1, and scope "read"
-    expect(builder.check(accessor2)).toBe(false); // Different tenant
-    expect(builder.check(accessor3)).toBe(false); // Different role and tenant
+    expect(builder.check(actor1)).toBe(true); // Matches tenant1, role1, and scope "read"
+    expect(builder.check(actor2)).toBe(false); // Different tenant
+    expect(builder.check(actor3)).toBe(false); // Different role and tenant
   });
 
   it("Root and nesting ANDS produce same results.", () => {
@@ -29,9 +29,9 @@ describe("RulesEngine - And Or Testing", () => {
       .withScopes(["read"])
       .or((orBuilder) => orBuilder.withTenant("tenant3"));
 
-    expect(builder1.check(accessor1)).toBe(builder2.check(accessor1)); // Matches tenant1, role1, and scope "read"
-    expect(builder1.check(accessor2)).toBe(builder2.check(accessor2)); // Different tenant
-    expect(builder1.check(accessor3)).toBe(builder2.check(accessor3)); // Different role and tenant
+    expect(builder1.check(actor1)).toBe(builder2.check(actor1)); // Matches tenant1, role1, and scope "read"
+    expect(builder1.check(actor2)).toBe(builder2.check(actor2)); // Different tenant
+    expect(builder1.check(actor3)).toBe(builder2.check(actor3)); // Different role and tenant
   });
 
   it("should pass when at least one OR condition matches", () => {
@@ -42,9 +42,9 @@ describe("RulesEngine - And Or Testing", () => {
         .or((nestedBldr) => nestedBldr.withRoles(["role2"]))
     );
 
-    expect(builder.check(accessor1)).toBe(true); // Matches tenant1
-    expect(builder.check(accessor2)).toBe(true); // Matches role2
-    expect(builder.check(accessor3)).toBe(false); // Matches neither
+    expect(builder.check(actor1)).toBe(true); // Matches tenant1
+    expect(builder.check(actor2)).toBe(true); // Matches role2
+    expect(builder.check(actor3)).toBe(false); // Matches neither
   });
 
   it("should pass when a nested AND condition within OR matches", () => {
@@ -57,9 +57,9 @@ describe("RulesEngine - And Or Testing", () => {
         .or((nestedBldr) => nestedBldr.withScopes(["execute"]))
     );
 
-    expect(builder.check(accessor1)).toBe(true); // Matches tenant1 and role1
-    expect(builder.check(accessor3)).toBe(true); // Matches scope "execute"
-    expect(builder.check(accessor2)).toBe(false); // Matches neither
+    expect(builder.check(actor1)).toBe(true); // Matches tenant1 and role1
+    expect(builder.check(actor3)).toBe(true); // Matches scope "execute"
+    expect(builder.check(actor2)).toBe(false); // Matches neither
   });
 
   it("should handle multiple AND and OR combinations", () => {
@@ -75,17 +75,17 @@ describe("RulesEngine - And Or Testing", () => {
         .or((bldr) => bldr.withRoles(["role2"]))
     );
 
-    expect(builder.check(accessor1)).toBe(true); // Matches AND condition
-    expect(builder.check(accessor2)).toBe(true); // Matches OR condition
+    expect(builder.check(actor1)).toBe(true); // Matches AND condition
+    expect(builder.check(actor2)).toBe(true); // Matches OR condition
     expect(
       builder.check({
-        ...accessor2,
-        role: "role1",
+        account: { ...actor2.account, role: "role1" },
+        claims: actor2.claims,
       })
     ).toBe(false); // Fails OR condition
 
-    expect(builder.check(accessor3)).toBe(false); // Matches neither
-    expect(builder.check(accessor4)).toBe(true); // Matches AND condition
+    expect(builder.check(actor3)).toBe(false); // Matches neither
+    expect(builder.check(actor4)).toBe(true); // Matches AND condition
   });
 
   it("should pass when a nested OR condition within AND matches", () => {
@@ -96,17 +96,17 @@ describe("RulesEngine - And Or Testing", () => {
         bldr.withScopes(["execute"]).withRoles(["role1"]);
       });
 
-    expect(builder.check(accessor1)).toBe(true); // Accessor 1 - Matches role1 and tenant1
-    expect(builder.check(accessor3)).toBe(false); // Accessor 3 - Fail Different tenant
-    expect(builder.check(accessor4)).toBe(true); // Accessor 4 - Matches role1 and tenant1
+    expect(builder.check(actor1)).toBe(true); // Accessor 1 - Matches role1 and tenant1
+    expect(builder.check(actor3)).toBe(false); // Accessor 3 - Fail Different tenant
+    expect(builder.check(actor4)).toBe(true); // Accessor 4 - Matches role1 and tenant1
   });
 
   it("should pass for all accessors if no rules are defined", () => {
     const builder = createRulesEngine();
 
-    expect(builder.check(accessor1)).toBe(true);
-    expect(builder.check(accessor2)).toBe(true);
-    expect(builder.check(accessor3)).toBe(true);
+    expect(builder.check(actor1)).toBe(true);
+    expect(builder.check(actor2)).toBe(true);
+    expect(builder.check(actor3)).toBe(true);
   });
 
   it("should fail when conflicting rules exist in AND", () => {
@@ -118,8 +118,8 @@ describe("RulesEngine - And Or Testing", () => {
           .and((nestedBldr) => nestedBldr.withScopes(["nonexistent-scope"]))
       );
 
-    expect(builder.check(accessor1)).toBe(false); // Conflicting scope
-    expect(builder.check(accessor4)).toBe(false); // Conflicting scope
+    expect(builder.check(actor1)).toBe(false); // Conflicting scope
+    expect(builder.check(actor4)).toBe(false); // Conflicting scope
   });
 
   it("should pass if at least one OR condition matches despite conflicts", () => {
@@ -131,7 +131,7 @@ describe("RulesEngine - And Or Testing", () => {
         )
     );
 
-    expect(builder.check(accessor1)).toBe(true); // Matches tenant1
-    expect(builder.check(accessor3)).toBe(false); // Conflicting roles and scopes
+    expect(builder.check(actor1)).toBe(true); // Matches tenant1
+    expect(builder.check(actor3)).toBe(false); // Conflicting roles and scopes
   });
 });

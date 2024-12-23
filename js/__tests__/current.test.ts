@@ -1,4 +1,4 @@
-import { describe, it, expect } from "./testkit";
+import { describe, it, expect } from "bun:test";
 import { createRulesEngine } from "../rules-engine";
 
 describe("RulesEngine - Current Tests", () => {

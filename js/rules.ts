@@ -1,12 +1,16 @@
-import type { Accessor, RulesEngineRule } from "./types";
+import type {
+  AggregateOperator,
+  AuthenticatedActor,
+  RulesEngineRule,
+} from "./types";
 
 export function TenantRule(tenant: string): RulesEngineRule {
   return {
     name: "tenant",
-    handler: (accessor: Accessor) => {
-      const valid = accessor.tenantId === tenant;
+    handler: ({ claims }: AuthenticatedActor) => {
+      const valid = claims.tenantId === tenant;
       if (valid) return [true, null];
-      return [false, `Tenant ${accessor.tenantId} does not match ${tenant}`];
+      return [false, `Tenant ${claims.tenantId} does not match ${tenant}`];
     },
   };
 }
@@ -14,28 +18,29 @@ export function TenantRule(tenant: string): RulesEngineRule {
 export function ScopeRule(scopes: string[]): RulesEngineRule {
   return {
     name: "scopes",
-    handler: (accessor: Accessor) => {
-      const valid = scopes.every((scope) => accessor.scopes.includes(scope));
+    handler: ({ claims }: AuthenticatedActor) => {
+      const valid = scopes.every((scope) => claims.scopes.includes(scope));
       if (valid) return [true, null];
-      return [
-        false,
-        `Accessor Scopes ${accessor.scopes} did not have  ${scopes}`,
-      ];
+      return [false, `claims Scopes ${claims.scopes} did not have  ${scopes}`];
     },
   };
 }
 
-export function PolicyRule(policies: string[]): RulesEngineRule {
+export function PermissionRule(
+  policies: string[],
+  operator: AggregateOperator = "ALL"
+): RulesEngineRule {
   return {
-    name: "policies",
-    handler: (accessor: Accessor) => {
-      const valid = policies.every((scope) =>
-        accessor.policies.includes(scope)
+    name: "permissions",
+    handler: ({ claims }: AuthenticatedActor) => {
+      const method = operator === "ANY" ? "some" : "every";
+      const valid = policies[method]((scope) =>
+        claims.permissions.includes(scope)
       );
       if (valid) return [true, null];
       return [
         false,
-        `Policy ${accessor.policies} did not have required policies ${policies}`,
+        `Policy ${claims.permissions} did not have required policies ${policies}`,
       ];
     },
   };
@@ -44,10 +49,10 @@ export function PolicyRule(policies: string[]): RulesEngineRule {
 export function RoleRule(roles: string[]): RulesEngineRule {
   return {
     name: "role",
-    handler: (accessor: Accessor) => {
-      const valid = roles.includes(accessor.role);
+    handler: ({ account }: AuthenticatedActor) => {
+      const valid = roles.includes(account.role);
       if (valid) return [true, null];
-      return [false, `Role ${accessor.role} was not included in ${roles}`];
+      return [false, `Role ${account.role} was not included in ${roles}`];
     },
   };
 }

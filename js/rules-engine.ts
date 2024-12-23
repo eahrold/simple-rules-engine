@@ -1,11 +1,11 @@
 import type {
   RulesEngineRule,
-  Accessor,
   LogicalOperator,
   RulesEngine,
-  RulesEngineResult,
+  AuthenticatedActor,
+  AggregateOperator,
 } from "./types";
-import { PolicyRule, ScopeRule, RoleRule, TenantRule } from "./rules";
+import { PermissionRule, ScopeRule, RoleRule, TenantRule } from "./rules";
 
 const DEBUG_LOGGER: { debug: typeof console.debug } = {
   debug: (...message: unknown[]) => {},
@@ -40,12 +40,12 @@ class RulesEngineImpl {
 
   createRule(
     name: string,
-    check: (accessor: Accessor) => boolean
+    check: (claims: AuthenticatedActor) => boolean
   ): RulesEngineRule {
     return {
       name,
-      handler: (accessor: Accessor) => {
-        const pass = check(accessor);
+      handler: (actor: AuthenticatedActor) => {
+        const pass = check(actor);
         if (pass) return [pass, null];
         return [false, `Rule ${name} failed validation`];
       },
@@ -69,8 +69,11 @@ class RulesEngineImpl {
     return this.with(ScopeRule(scopes));
   }
 
-  withPolicies(policies: string[]): RulesEngine {
-    return this.with(PolicyRule(policies));
+  withPermissions(
+    policies: string[],
+    operator: AggregateOperator = "ALL"
+  ): RulesEngine {
+    return this.with(PermissionRule(policies));
   }
 
   and(cb: (builder: RulesEngine) => void): RulesEngine {
@@ -86,18 +89,18 @@ class RulesEngineImpl {
     return this;
   }
 
-  check(accessor: Accessor, depth = 0): boolean {
+  check(actor: AuthenticatedActor, depth = 0): boolean {
     const { operator, rules } = this;
     const orOperatorWithNoRules = operator === "OR" && rules.length === 0;
     const selfPass = orOperatorWithNoRules
       ? false
       : rules.every((rule) => {
-          return this.eval(accessor, rule);
+          return this.eval(actor, rule);
         });
 
     if (operator === "AND") {
       const childrenPass = this.subBuilders.every((subBuilder) =>
-        subBuilder.check(accessor, depth + 1)
+        subBuilder.check(actor, depth + 1)
       );
       const valid = selfPass && childrenPass;
       this.dlog(`AND Access ${valid ? "Allowed" : "Denied"}`, {
@@ -108,7 +111,7 @@ class RulesEngineImpl {
       return valid;
     } else if (operator === "OR") {
       const childrenPass = this.subBuilders.some((subBuilder) =>
-        subBuilder.check(accessor, depth + 1)
+        subBuilder.check(actor, depth + 1)
       );
       const valid = selfPass || childrenPass;
       this.dlog(`OR Access ${valid ? "Allowed" : "Denied"}`, {
@@ -126,8 +129,8 @@ class RulesEngineImpl {
     this.config.logger.debug(message);
   }
 
-  private eval(accessor: Accessor, rule: RulesEngineRule): boolean {
-    const [success, reason] = rule.handler(accessor);
+  private eval(actor: AuthenticatedActor, rule: RulesEngineRule): boolean {
+    const [success, reason] = rule.handler(actor);
     if (!success) {
       this.dlog(reason);
     }
