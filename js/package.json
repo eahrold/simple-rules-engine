@@ -1,5 +1,5 @@
 {
-  "name": "rules-engine",
+  "name": "@eeaapps/simple-rules-engine",
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
