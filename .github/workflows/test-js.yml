@@ -1,10 +1,13 @@
 name: test-js
+on: [push]
+defaults:
+  run:
+    working-directory: ./js
+
 jobs:
   test-js:
     name: test-js
     runs-on: ubuntu-latest
-    defaults:
-      working-directory: /js
     steps:
       # ...
       - uses: actions/checkout@v4
