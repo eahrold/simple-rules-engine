@@ -15,11 +15,17 @@ export function TenantRule(tenant: string): RulesEngineRule {
   };
 }
 
-export function ScopeRule(scopes: string[]): RulesEngineRule {
+export function ScopeRule(
+  scopes: string[],
+  operator: AggregateOperator
+): RulesEngineRule {
   return {
     name: "scopes",
     handler: ({ claims }: AuthenticatedActor) => {
-      const valid = scopes.every((scope) => claims.scopes.includes(scope));
+      const method = operator === "ANY" ? "some" : "every";
+      const valid = scopes[method]((p) => {
+        return claims.scopes.includes(p);
+      });
       if (valid) return [true, null];
       return [false, `claims Scopes ${claims.scopes} did not have  ${scopes}`];
     },

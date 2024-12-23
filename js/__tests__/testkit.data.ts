@@ -5,6 +5,16 @@ export function getConfig() {
   return debug ? { logger: console } : undefined;
 }
 
+export function createTestActor(
+  merge: Partial<AuthenticatedActor>,
+  base: AuthenticatedActor = actor1
+) {
+  return {
+    account: { ...base.account, ...(merge.account ?? {}) },
+    claims: { ...base.claims, ...(merge.claims ?? {}) },
+  };
+}
+
 export const actor1: AuthenticatedActor = {
   account: {
     id: "actor1",

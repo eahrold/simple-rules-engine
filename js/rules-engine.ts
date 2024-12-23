@@ -20,7 +20,8 @@ export function createRulesEngine(
 class RulesEngineImpl {
   private config: { logger: typeof DEBUG_LOGGER };
   private rules: RulesEngineRule[] = [];
-  private subBuilders: RulesEngine[] = [];
+  private orBuilders: RulesEngine[] = [];
+  private andBuilders: RulesEngine[] = [];
   private operator: LogicalOperator;
 
   constructor(
@@ -65,8 +66,11 @@ class RulesEngineImpl {
     return this.with(RoleRule(roles));
   }
 
-  withScopes(scopes: string[]): RulesEngine {
-    return this.with(ScopeRule(scopes));
+  withScopes(
+    scopes: string[],
+    operator: AggregateOperator = "ALL"
+  ): RulesEngine {
+    return this.with(ScopeRule(scopes, operator));
   }
 
   withPermissions(
@@ -76,8 +80,10 @@ class RulesEngineImpl {
     return this.with(PermissionRule(permissions, operator));
   }
 
-  and(cb: (builder: RulesEngine) => void): RulesEngine {
-    cb(this);
+  and(subBuilderCallback: (builder: RulesEngine) => void): RulesEngine {
+    const subBuilder = new RulesEngineImpl("AND", this.config);
+    subBuilderCallback(subBuilder);
+    this.andBuilders.push(subBuilder);
     return this;
   }
 
@@ -85,38 +91,48 @@ class RulesEngineImpl {
     this.operator = "OR";
     const subBuilder = new RulesEngineImpl("AND", this.config);
     subBuilderCallback(subBuilder);
-    this.subBuilders.push(subBuilder);
+    this.orBuilders.push(subBuilder);
     return this;
   }
 
   check(actor: AuthenticatedActor, depth = 0): boolean {
-    const { operator, rules } = this;
-    const orOperatorWithNoRules = operator === "OR" && rules.length === 0;
+    const { operator, rules, andBuilders, orBuilders } = this;
+    const orOperatorWithNoRules =
+      operator === "OR" && rules.length === 0 && andBuilders.length === 0;
+
+    const andRulesPassed = andBuilders.every((subBuilder) => {
+      return subBuilder.check(actor, depth + 1);
+    });
+
     const selfPass = orOperatorWithNoRules
       ? false
       : rules.every((rule) => {
-          return this.eval(actor, rule);
-        });
+          return this.eval(actor, rule, depth);
+        }) && andRulesPassed;
 
     if (operator === "AND") {
-      const childrenPass = this.subBuilders.every((subBuilder) =>
-        subBuilder.check(actor, depth + 1)
-      );
+      const childrenPass = orBuilders.every((subBuilder) => {
+        return subBuilder.check(actor, depth + 1);
+      });
       const valid = selfPass && childrenPass;
       this.dlog(`AND Access ${valid ? "Allowed" : "Denied"}`, {
         selfPass,
+        andRulesPassed,
         childrenPass,
+        operator,
         depth,
       });
       return valid;
     } else if (operator === "OR") {
-      const childrenPass = this.subBuilders.some((subBuilder) =>
+      const childrenPass = orBuilders.some((subBuilder) =>
         subBuilder.check(actor, depth + 1)
       );
       const valid = selfPass || childrenPass;
       this.dlog(`OR Access ${valid ? "Allowed" : "Denied"}`, {
         selfPass,
+        andRulesPassed,
         childrenPass,
+        operator,
         depth,
       });
       return valid;
@@ -129,10 +145,14 @@ class RulesEngineImpl {
     this.config.logger.debug(message);
   }
 
-  private eval(actor: AuthenticatedActor, rule: RulesEngineRule): boolean {
+  private eval(
+    actor: AuthenticatedActor,
+    rule: RulesEngineRule,
+    depth = 0
+  ): boolean {
     const [success, reason] = rule.handler(actor);
     if (!success) {
-      this.dlog(reason);
+      this.dlog(reason, { depth });
     }
     return success;
   }
