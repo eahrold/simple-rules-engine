@@ -1,13 +1,10 @@
-import type {
-  AggregateOperator,
-  AuthenticatedActor,
-  RulesEngineRule,
-} from "./types";
+import type { CustomRulesEngineRule } from "./custom-rules-engine-types";
+import type { AggregateOperator, RulesEngineRule } from "./rules-engine-types";
 
-export function TenantRule(tenant: string): RulesEngineRule {
+export function TenantRule(tenant: string): CustomRulesEngineRule {
   return {
     name: "tenant",
-    handler: ({ claims }: AuthenticatedActor) => {
+    handler: ({ claims }) => {
       const valid = claims.tenantId === tenant;
       if (valid) return [true, null];
       return [false, `Tenant ${claims.tenantId} does not match ${tenant}`];
@@ -18,10 +15,10 @@ export function TenantRule(tenant: string): RulesEngineRule {
 export function ScopeRule(
   scopes: string[],
   operator: AggregateOperator
-): RulesEngineRule {
+): CustomRulesEngineRule {
   return {
     name: "scopes",
-    handler: ({ claims }: AuthenticatedActor) => {
+    handler: ({ claims }) => {
       const method = operator === "ANY" ? "some" : "every";
       const valid = scopes[method]((p) => {
         return claims.scopes.includes(p);
@@ -35,10 +32,10 @@ export function ScopeRule(
 export function PermissionRule(
   permissions: string[],
   operator: AggregateOperator = "ALL"
-): RulesEngineRule {
+): CustomRulesEngineRule {
   return {
     name: "permissions",
-    handler: ({ claims }: AuthenticatedActor) => {
+    handler: ({ claims }) => {
       const method = operator === "ANY" ? "some" : "every";
       const valid = permissions[method]((p) => {
         return claims.permissions.includes(p);
@@ -52,10 +49,10 @@ export function PermissionRule(
   };
 }
 
-export function RoleRule(roles: string[]): RulesEngineRule {
+export function RoleRule(roles: string[]): CustomRulesEngineRule {
   return {
     name: "role",
-    handler: ({ account }: AuthenticatedActor) => {
+    handler: ({ account }) => {
       const valid = roles.includes(account.role);
       if (valid) return [true, null];
       return [false, `Role ${account.role} was not included in ${roles}`];

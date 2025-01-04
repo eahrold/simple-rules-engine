@@ -1,4 +1,4 @@
-import type { AuthenticatedActor } from "../types";
+import type { AuthenticatedActor } from "../custom-rules-engine-types";
 
 export function getConfig() {
   const debug = process.env.NODE_ENV === "debug";

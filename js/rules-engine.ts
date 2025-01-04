@@ -2,121 +2,81 @@ import type {
   RulesEngineRule,
   LogicalOperator,
   RulesEngine,
-  AuthenticatedActor,
-  AggregateOperator,
-} from "./types";
-import { PermissionRule, ScopeRule, RoleRule, TenantRule } from "./rules";
+  RulesEngineLogger,
+} from "./rules-engine-types";
 
-const DEBUG_LOGGER: { debug: typeof console.debug } = {
-  debug: (...message: unknown[]) => {},
-};
+export abstract class BaseRulesEngine<
+  Ctx,
+  Self extends RulesEngine<Ctx, Self>
+> {
+  protected config: { logger?: RulesEngineLogger };
+  protected rules: RulesEngineRule<Ctx>[] = [];
+  protected orBuilders: Self[] = [];
+  protected andBuilders: Self[] = [];
+  protected operator: LogicalOperator;
 
-export function createRulesEngine(
-  config: { logger: typeof DEBUG_LOGGER } = { logger: DEBUG_LOGGER }
-): RulesEngine {
-  return RulesEngineImpl.create("AND", config);
-}
-
-class RulesEngineImpl {
-  private config: { logger: typeof DEBUG_LOGGER };
-  private rules: RulesEngineRule[] = [];
-  private orBuilders: RulesEngine[] = [];
-  private andBuilders: RulesEngine[] = [];
-  private operator: LogicalOperator;
-
-  constructor(
-    operator: LogicalOperator = "AND",
-    config: { logger: typeof DEBUG_LOGGER }
-  ) {
-    this.operator = operator;
+  constructor(config: { logger?: RulesEngineLogger } = { logger: console }) {
+    this.operator = "AND";
     this.config = config;
   }
 
-  static create(
-    operator: LogicalOperator = "AND",
-    config: { logger: typeof DEBUG_LOGGER }
-  ): RulesEngine {
-    return new RulesEngineImpl(operator, config);
-  }
+  abstract self(): Self;
+
+  abstract clone(): Self;
 
   createRule(
     name: string,
-    check: (claims: AuthenticatedActor) => boolean
-  ): RulesEngineRule {
+    check: (context: Ctx) => boolean
+  ): RulesEngineRule<Ctx> {
     return {
       name,
-      handler: (actor: AuthenticatedActor) => {
-        const pass = check(actor);
+      handler: (context: Ctx) => {
+        const pass = check(context);
         if (pass) return [pass, null];
         return [false, `Rule ${name} failed validation`];
       },
     };
   }
 
-  with(rule: RulesEngineRule): RulesEngine {
+  with(rule: RulesEngineRule<Ctx>): Self {
     this.rules.push(rule);
-    return this;
+    return this.self();
   }
 
-  withTenant(tenantId: string): RulesEngine {
-    return this.with(TenantRule(tenantId));
-  }
-
-  withRole(role: string): RulesEngine {
-    return this.withRoles([role]);
-  }
-
-  withRoles(roles: string[]): RulesEngine {
-    return this.with(RoleRule(roles));
-  }
-
-  withScopes(
-    scopes: string[],
-    operator: AggregateOperator = "ALL"
-  ): RulesEngine {
-    return this.with(ScopeRule(scopes, operator));
-  }
-
-  withPermissions(
-    permissions: string[],
-    operator: AggregateOperator = "ALL"
-  ): RulesEngine {
-    return this.with(PermissionRule(permissions, operator));
-  }
-
-  and(subBuilderCallback: (builder: RulesEngine) => void): RulesEngine {
-    const subBuilder = new RulesEngineImpl("AND", this.config);
+  and(subBuilderCallback: (builder: Self) => void): Self {
+    const subBuilder = this.clone();
     subBuilderCallback(subBuilder);
     this.andBuilders.push(subBuilder);
-    return this;
+    return this.self();
   }
 
-  or(subBuilderCallback: (builder: RulesEngine) => void): RulesEngine {
+  or(subBuilderCallback: (builder: Self) => void): Self {
     this.operator = "OR";
-    const subBuilder = new RulesEngineImpl("AND", this.config);
+
+    const subBuilder = this.clone();
     subBuilderCallback(subBuilder);
     this.orBuilders.push(subBuilder);
-    return this;
+    return this.self();
   }
 
-  check(actor: AuthenticatedActor, depth = 0): boolean {
+  check(ctx: Ctx, depth = 0): boolean {
     const { operator, rules, andBuilders, orBuilders } = this;
     const orOperatorWithNoRules =
       operator === "OR" && rules.length === 0 && andBuilders.length === 0;
 
     const andRulesPassed = andBuilders.every((subBuilder) => {
-      return subBuilder.check(actor, depth + 1);
+      return subBuilder.check(ctx, depth + 1);
     });
 
     const selfPass = orOperatorWithNoRules
       ? false
       : rules.every((rule) => {
-          return this.eval(actor, rule, depth);
+          return this.eval(ctx, rule, depth);
         }) && andRulesPassed;
 
     if (operator === "AND") {
       const childrenPass = orBuilders.every((subBuilder) => {
-        return subBuilder.check(actor, depth + 1);
+        return subBuilder.check(ctx, depth + 1);
       });
       const valid = selfPass && childrenPass;
       this.dlog(`AND Access ${valid ? "Allowed" : "Denied"}`, {
@@ -129,7 +89,7 @@ class RulesEngineImpl {
       return valid;
     } else if (operator === "OR") {
       const childrenPass = orBuilders.some((subBuilder) =>
-        subBuilder.check(actor, depth + 1)
+        subBuilder.check(ctx, depth + 1)
       );
       const valid = selfPass || childrenPass;
       this.dlog(`OR Access ${valid ? "Allowed" : "Denied"}`, {
@@ -146,15 +106,11 @@ class RulesEngineImpl {
   }
 
   private dlog(...message: unknown[]) {
-    this.config.logger.debug(message);
+    this.config.logger?.debug(message);
   }
 
-  private eval(
-    actor: AuthenticatedActor,
-    rule: RulesEngineRule,
-    depth = 0
-  ): boolean {
-    const [success, reason] = rule.handler(actor);
+  private eval(context: Ctx, rule: RulesEngineRule<Ctx>, depth = 0): boolean {
+    const [success, reason] = rule.handler(context);
     if (!success) {
       this.dlog(reason, { depth });
     }

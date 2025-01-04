@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { createRulesEngine } from "../rules-engine";
+import { createRulesEngine } from "../custom-rules-engine";
 import { actor1, getConfig } from "./testkit.data";
 
 const config = getConfig();

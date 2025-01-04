@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { actor1 } from "./testkit.data";
 
-import { createRulesEngine } from "../rules-engine";
+import { createRulesEngine } from "../custom-rules-engine";
 
 describe("Rules Engine - Base Test Cases", () => {
   it("should pass for matching tenant", () => {

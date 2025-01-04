@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { actor1, actor2, actor3, actor4 } from "./testkit.data";
 
-import { createRulesEngine } from "../rules-engine";
+import { createRulesEngine } from "../custom-rules-engine";
 
 describe("RulesEngine - And Or Testing", () => {
   it("should pass when all AND conditions match", () => {
